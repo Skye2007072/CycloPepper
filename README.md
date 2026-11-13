@@ -1,2 +1,53 @@
-# CycloPepper
-Simplified machine learning evaluation for peptide cyclization prediction
+# CycloPepper: Simplified Machine Learning Evaluation
+
+This project independently evaluates simplified machine learning classifiers on the publicly available CycloPepper peptide cyclization dataset. It also examines cyclic rotation groups and the consistency of experimental labels.
+
+The work **does not reproduce the complete CycloPepper platform**. It uses binary experimental labels indicating whether an LC-MS signal corresponding to the expected product mass was detected under the reported conditions. The labels **do not directly measure isolated yield or product purity**.
+
+## Data source
+
+- Original study: Pan et al. (2026), *CycloPepper: a machine learning platform for predicting cyclization outcomes and optimizing synthesis of therapeutic cyclopeptides*, *Nature Communications*. DOI: [10.1038/s41467-026-69441-w](https://doi.org/10.1038/s41467-026-69441-w).
+- Original code and publicly available data: [Selection-of-Cyclization-Sites](https://github.com/Yongboxiao/Selection-of-Cyclization-Sites).
+- The model evaluation uses the 306 labeled records in `dataset.csv`. The public `experiment.csv` contains 74 sequence records but does not provide a `Score` column, so external prediction accuracy is **not evaluated** here.
+
+The notebooks download the published data from the original repository when possible. If the Phase 2 download is unavailable, upload a local copy of `dataset.csv` when prompted.
+
+## Project files
+
+| File | Purpose |
+| --- | --- |
+| `CycloPepper_Phase1_Data_Audit.ipynb` | Inspect the published data, binary labels, duplicates, and cyclic rotation groups. |
+| `CycloPepper_Phase2_Model_Training.ipynb` | Extract 61 sequence-based features, compare three models using grouped cross-validation, and evaluate a held-out test set. |
+| `CycloPepper_Phase3_Site_Analysis.ipynb` | Analyze mixed-label rotation groups, distinguish label differences from identical-sequence conflicts, and review saved holdout errors. |
+| `requirements.txt` | Main Python package dependencies. |
+
+## How to run
+
+The notebooks were written for **Google Colab**. Open each `.ipynb` file in Colab and use **Runtime → Run all**.
+
+1. **Phase 1 (data audit):** Run independently to inspect the original public files. It exports `cyclopepper_dataset_audit.csv`. Phase 1 does not train a model and is not a prerequisite for Phase 2.
+2. **Phase 2 (model evaluation):** Run independently with access to the public `dataset.csv`. It compares Dummy Classifier, Logistic Regression, and Random Forest; performs a cyclic rotation group-aware train/test split and five-fold `GroupKFold` cross-validation; and downloads `CycloPepper_Phase2_All_Results.zip`.
+3. **Phase 3 (group analysis):** Run after Phase 2. **When prompted, upload the `CycloPepper_Phase2_All_Results.zip` created in Phase 2**. It uses the saved data and predictions without retraining the models, then downloads `CycloPepper_Phase3_Results.zip`.
+
+A GPU is not required. An internet connection is needed to access the original public data unless a local dataset is uploaded. In a local Jupyter environment, the Google Colab-specific upload/download helpers require adaptation.
+
+## Methods and evaluation
+
+- **Records:** 306 labeled peptide records, with 174 Score = 1 and 132 Score = 0.
+- **Features:** 61 per sequence: length (1), amino acid relative frequencies (20), N-terminal identity (20), C-terminal identity (20).
+- **Grouping:** Cyclically rotated linear representations are assigned to the same group to reduce potential leakage across evaluation splits.
+- **Models:** Most-frequent Dummy Classifier, standardized Logistic Regression, and Random Forest.
+- **Evaluation:** Approximately 80/20 group-aware split, five-fold grouped cross-validation on the training set, and held-out test evaluation using Accuracy, Balanced Accuracy, F1-score, and ROC-AUC (holdout).
+
+In the recorded evaluation, the split contained 246 training records and 60 held-out records. Random Forest obtained 65.1% mean grouped cross-validation Balanced Accuracy and 65.1% held-out Balanced Accuracy (65.0% held-out Accuracy; ROC-AUC 0.727).
+
+## Interpretation and limitations
+
+The dataset is small, the feature set does not directly describe peptide conformations or experimental conditions, and binary LC-MS-derived labels are not quantitative yields. In the observed data, eight cyclic rotation groups had mixed experimental labels; the identical sequence `RS` also appeared with conflicting labels. Differences among distinct linear precursors should not be interpreted as proof of a causal cyclization-site effect. The simplified models have not been evaluated against independently matched external experimental labels in this project.
+
+## Reproducibility notes
+
+- Phase 2 uses `random_state=42` for reproducible group splitting and model training.
+- `requirements.txt` lists the main Python packages. Phase 2 also installs its packages in the first code cell when run in Colab.
+- The result archives are generated by the notebooks and are not required for an initial run. **Keep the Phase 2 ZIP file to run Phase 3.**
+- The original study and dataset should be cited when reusing the public data.
